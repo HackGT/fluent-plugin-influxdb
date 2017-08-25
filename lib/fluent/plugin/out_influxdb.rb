@@ -110,23 +110,9 @@ DESC
     points = []
     chunk.msgpack_each do |tag, time, record|
       timestamp = record.delete(@time_key) || time
-      if tag_keys.empty? && !@auto_tags
-        values = record
-        tags = {}
-      else
-        values = {}
-        tags = {}
-        record.each_pair do |k, v|
-          if (@auto_tags && v.is_a?(String)) || @tag_keys.include?(k)
-            # If the tag value is not nil, empty, or a space, add the tag
-            if v.to_s.strip != ''
-              tags[k] = v
-            end
-          else
-            values[k] = v
-          end
-        end
-      end
+      tags = record["tags"]
+      series = record["serviceName"]
+      values = record["values"]
       if @sequence_tag
         if @prev_timestamp == timestamp
           @seq += 1
@@ -137,16 +123,15 @@ DESC
         @prev_timestamp = timestamp
       end
 
-      if values.empty?
-          log.warn "Skip record '#{record}', because InfluxDB requires at least one value in raw"
-          next
+      if tags.nil? or series.nil? or values.nil?
+        log.warn "Skip record '#{record}', because record does not conform to spec"
+        next
       end
-
       point = {
-        :timestamp => timestamp,
-        :series    => @measurement || tag,
-        :values    => values,
-        :tags      => tags,
+        timestamp: timestamp,
+        series: series,
+        values: values,
+        tags: tags
       }
       retention_policy = @default_retention_policy
       unless @retention_policy_key.nil?
