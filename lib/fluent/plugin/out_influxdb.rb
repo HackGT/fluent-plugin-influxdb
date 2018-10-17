@@ -109,7 +109,7 @@ DESC
   def write(chunk)
     points = []
     chunk.msgpack_each do |tag, time, record|
-      record["tags"].each{ |key,val| record["tags"][key] = URI.escape(record["tags"][key]) }
+      record["tags"].each{ |key,val| record["tags"][key] = URI.escape(val.to_s.gsub(/\r\n?/, "")) }
       timestamp = record.delete(@time_key) || time
       tags = record["tags"]
       series = record["serviceName"]
